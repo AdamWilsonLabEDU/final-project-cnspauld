@@ -1,5 +1,5 @@
 ---
-title: "Comparing Water Health in a Pre and Current COVID Landscape"
+title: "Comparing Water Health in a Pre and Post COVID Landscape"
 author: Caroline Spaulding
 subtitle: A Study in in Buffalo, NY
 date: today
@@ -8,11 +8,7 @@ date-format: long
 
 # Introduction
 
-\[\~ 200 words\]
-
-Many factors can affect how fresh water quality and composition is affected. Some of these factors include, but are not limited to, pH and turbidity. The pH of water measures how acidic or basic it may be on a scale of 0 to 14, with 0 representing a solution that is highly acidic, and 14 representing a solution that is highly basic. 7 represents a solution that is neutral. In a healthy freshwater body, pH typically ranges from 6.5 to 8.5. Turbidity is essentially the measure of how clear a liquid is. The cloudier it is, typically the unhealthier the water may be. This usually means the water contains pollutants, or particulate matter such as silt and clay. In this project, I will analyze the differences from the years 2019 and 2020 to better understand how the COVID-19 lock down affected essential measures of water quality in the Buffalo area. I hypothesize that water quality will have improved during the height of the pandemic. This is because human activity was greatly reduced, with only essential personnel leaving their homes. With no human activity to contribute to the addition of pollutants into the water system, pH and turbidity should stabilize to healthy levels.
-
-Clearly stated background and questions / hypotheses / problems being addressed. Sets up the analysis in an interesting and compelling way. Include figures if you like.
+Many factors can affect how fresh water quality and composition is affected. Some of these factors include, but are not limited to, pH and turbidity. The pH of water measures how acidic or basic it may be on a scale of 0 to 14, with 0 representing a solution that is highly acidic, and 14 representing a solution that is highly basic. 7 represents a solution that is neutral. In a healthy freshwater body, pH typically ranges from 6.5 to 8.5. Turbidity is essentially the measure of how clear a liquid is. The cloudier it is, typically the unhealthier the water may be. This usually means the water contains pollutants, or particulate matter such as silt and clay. In this project, I will analyze the differences from the years 2019 and 2023 to better understand how the COVID-19 lock down affected essential measures of water quality in the Buffalo area. I hypothesize that water quality will have improved during the height of the pandemic. This is because human activity was greatly reduced, with only essential personnel leaving their homes. With no human activity to contribute to the addition of pollutants into the water system, pH and turbidity should stabilize to healthy levels.
 
 # Materials and methods
 
@@ -28,6 +24,8 @@ The packages used in this project are ggplot2, sf, and leaflet.
 library(ggplot2)
 library(sf)
 library(leaflet)
+library(tidyverse)
+library(readxl)
 waterkeeper_data_2019 <- read.csv("data/WaterKeeper_2019.csv")
 # Convert the data into a spatial object (sf)
 waterkeeper_data_2019_sf <- st_as_sf(waterkeeper_data_2019, coords = c("LONG", "LAT"), crs = 4326)
@@ -51,25 +49,27 @@ The code above represents data gathered by the Buffalo Niagara Waterkeeper in 20
 library(ggplot2)
 library(sf)
 library(leaflet)
-specific_file <- read.csv("data/specific_file.csv")
+library(readxl)
+waterkeeper_data_2023 <- read_excel("data/2023_Riverwatch_Data.xlsx")
+
 #Convert the data into a spatial object
-specific_file_2020_sf <- st_as_sf(specific_file, coords = c("longitude", "latitude"), crs = 4326)
+waterkeeper_data_2023_sf <- st_as_sf(waterkeeper_data_2023, coords = c("longitude", "latitude"), crs = 4326)
 
-specific_file_2020_sf$longitude <- specific_file$longitude 
-specific_file_2020_sf$latitude <- specific_file$latitude
+waterkeeper_data_2023_sf$longitude <- waterkeeper_data_2023$longitude 
+waterkeeper_data_2023_sf$latitude <- waterkeeper_data_2023$latitude
 
-leaflet(specific_file_2020_sf) %>%
+leaflet(waterkeeper_data_2023_sf) %>%
   addTiles() %>%
   addCircleMarkers(
     ~longitude, ~latitude,
     radius = 5,
     color = "red",
-    popup = ~waterbody_name
+    popup = ~station_name
   ) %>%
-  setView(lng = mean(specific_file$longitude), lat = mean(specific_file$latitude), zoom = 10)
+  setView(lng = mean(waterkeeper_data_2023$longitude), lat = mean(waterkeeper_data_2023$latitude), zoom = 10)
 ```
 
-The code above shows data collected by the New York State Department of Environmental Conservation in 2020. This plot is also labelled by location, so one can see what body of water datat was collected from.
+The code above shows data collected by the Buffalo Niagara Waterkeeper in 2023. This plot is also labelled by location, so one can see what body of water the data was collected from.
 
 Narrative: Clear narrative description of the data sources and methods. Includes data from at least two sources that were integrated / merged in R.
 
@@ -101,49 +101,67 @@ waterkeeper_data_2019 <- read.csv("data/WaterKeeper_2019.csv")
 waterkeeper_data_2019_sf <- st_as_sf(waterkeeper_data_2019, coords = c("LONG", "LAT"), crs = 4326)
 waterkeeper_data_2019_sf$LONG <- waterkeeper_data_2019$LONG 
 waterkeeper_data_2019_sf$LAT <- waterkeeper_data_2019$LAT 
-#Plotting turbidity over time for waterkeeper data
-ggplot(waterkeeper_data_2019_sf, aes(x = waterkeeper_data_2019$Date, y = waterkeeper_data_2019$turbidity)) +
-  geom_line(color = "blue") +  # Line plot
-  geom_point(color = "red") +  # Scatter plot points
-  labs(x = "Time", y = "Turbidity (NTU)", title = "Turbidity vs Time") +
-  theme_minimal() +
+waterkeeper_data_2019_st <- waterkeeper_data_2019_sf %>% 
+  mutate(Month = factor(Month, levels = rev(month.name), ordered = TRUE))
+
+library(tidyverse)
+
+t_range <- range(waterkeeper_data_2019_sf$turbidity, na.rm = TRUE)
+
+# Plotting turbidity over time for Waterkeeper 2019 data
+ggplot(waterkeeper_data_2019_st, aes(x = turbidity, y = Month, group = Month, color = Month)) +
+  geom_line(size = 1) +  # Line plot
+  geom_point(size = 2) +  # Scatter plot points
+  scale_x_continuous(limits = t_range) +  # Make sure t_range is correctly defined
+  labs(x = "Turbidity (NTU)", y = "Month", title = "Turbidity vs Month in 2019") +  # Add labels and title
+  theme_minimal() + 
   theme(
-    axis.text.x = element_text(angle = 45, hjust = 1))
+    axis.text.x = element_text(angle = 45, hjust = 1)  # Rotate x-axis labels
+  )
 ```
 
-Refer to output in your narrative like this: x=`r x` .
 
-Load any required packages in a code chunk (you may need to install some packages):
+```{r}
+library(ggplot2)
+library(sf)
+library(readxl)
+waterkeeper_data_2023 <- read_excel("data/2023_Riverwatch_Data.xlsx")
+#Convert the data into a spatial object
+waterkeeper_data_2023_sf <- st_as_sf(waterkeeper_data_2023, coords = c("longitude", "latitude"), crs = 4326)
 
-```{r, message=F, warning=F}
+waterkeeper_data_2023_sf$longitude <- waterkeeper_data_2023$longitude 
+waterkeeper_data_2023_sf$latitude <- waterkeeper_data_2023$latitude
+
+waterkeeper_data_2023_st <- waterkeeper_data_2023_sf %>%
+  mutate(
+    Month = format(collection_date, "%B"),  # Extract month names
+    Month = factor(Month, levels = rev(month.name), ordered = TRUE)  # Reverse the month order
+  )
+
 library(tidyverse)
-library(leaflet)
-library(kableExtra)
-library(htmlwidgets)
-library(widgetframe)
-knitr::opts_chunk$set(widgetframe_widgets_dir = 'widgets' ) 
-knitr::opts_chunk$set(cache=TRUE)  # cache the results for quick compiling
+  
+t_range2 <- range(waterkeeper_data_2023_sf$`Turbidity [p:2922]`)
+  
+# Plot turbidity values, excluding NA values for waterkeeper 2023 data
+ggplot(waterkeeper_data_2023_st, aes(x = `Turbidity [p:2922]`, y = Month, group = Month, color = Month)) +
+  geom_line(size = 1, na.rm = TRUE) +  # Exclude NA values for lines
+  geom_point(size = 2, na.rm = TRUE) +  # Exclude NA values for points
+  scale_x_continuous(limits = c(min(waterkeeper_data_2023_st$`Turbidity [p:2922]`, na.rm = TRUE),
+                                max(waterkeeper_data_2023_st$`Turbidity [p:2922]`, na.rm = TRUE))) +  # Exclude NA values for x-axis limits
+  labs(x = "Turbidity (NTU)", y = "Month", title = "Turbidity vs Month in 2023") + 
+  theme_minimal() + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
 ```
 
 ## Download and clean all required data
 
 ```{r}
-n=20
-data=data.frame(x=runif(n,-180,180),
-                y=runif(n,-60,60),
-                size = runif(n, 5, 20),
-                category = factor(
-                  sample(letters[1:5], n, replace = TRUE)
-                  ),
-                value = rnorm(n))
+
 ```
 
 ```{r, results='asis'}
-data %>% 
-  slice(1:10) %>% #show only 1:n rows
-  kable(digits=2,align="c")%>% #make table and round to two digits
-  kable_styling(bootstrap_options = 
-                  c("striped", "hover", "condensed", "responsive")) #apply other formatting
+
 ```
 
 Add any additional processing steps here.
@@ -156,27 +174,11 @@ Tables and figures (maps and other graphics) are carefully planned to convey the
 
 Show tables, plots, etc. and describe them.
 
-```{r, fig.width=6, fig.height=3, fig.cap="Map of completely random data"}
-m <- leaflet(data) %>% 
-  addTiles() %>% 
-  addCircleMarkers(~x, ~y, radius = ~size,color = ~as.factor(category)) %>% 
-  addPopups(~x[2], ~y[2], "Random popup")
-m  # a map with the default OSM tile layer
-```
 
 ```{r}
-data %>% 
-  ggplot(aes(x=x,y=y,col=category))+
-  geom_point()
+
 ```
 
-### Dygraphs Example
-
-```{r}
-library(dygraphs)
-dygraph(nhtemp, main = "New Haven Temperatures") |> 
-  dyRangeSelector(dateWindow = c("1920-01-01", "1960-01-01")) 
-```
 
 # Conclusions
 
@@ -186,4 +188,14 @@ Clear summary adequately describing the results and putting them in context. Dis
 
 # References
 
-All sources are cited in a consistent manner
+Aziz, F. A., Sarosa, M., & Rohadi, E. (2020). Monitoring system water pH rate, turbidity, and temperature of river water. IOP Conference Series: Materials Science and Engineering, 732, 012106. https://doi.org/10.1088/1757-899x/732/1/012106
+
+Hem, J. D. (2001). Study and Interpretation of the Chemical Characteristics of Natural Water Third Edition. https://pubs.usgs.gov/wsp/wsp2254/pdf/wsp2254a.pdf
+
+Norris, R. H., & Thoms, M. C. (1999). What is river health? Freshwater Biology, 41(2), 197–209. https://doi.org/10.1046/j.1365-2427.1999.00425.x
+
+Rizo-Decelis, L. D., Eulogio Pardo-Igúzquiza, & Bartolomé Andreo. (2017). Spatial prediction of water quality variables along a main river channel, in presence of pollution hotspots. 605-606, 276–290. https://doi.org/10.1016/j.scitotenv.2017.06.145
+
+WATER QUALITY REPORT. (n.d.). https://bnwaterkeeper.org/wp-content/uploads/2022/01/2021-water-quality-report_FINAL_web.pdf
+
+Yunus, A. P., Masago, Y., & Hijioka, Y. (2020). COVID-19 and surface water quality: Improved lake water quality during the lockdown. Science of the Total Environment, 731, 139012. https://doi.org/10.1016/j.scitotenv.2020.139012
